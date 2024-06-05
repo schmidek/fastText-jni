@@ -1,0 +1,153 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build-linux:
+
+    runs-on: ubuntu-latest
+    container: gcc:10-buster
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+
+      - name: Make
+        run: cd src/main/native && make -j4
+
+      - name: Upload shared library
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux_lib
+          path: src/main/native/libfasttext.so
+
+  test-linux:
+
+    runs-on: ubuntu-latest
+    needs: build-linux
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          lfs: 'true'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Download shared library
+        uses: actions/download-artifact@v4
+        with:
+          name: linux_lib
+          path: src/main/resources/com/diffbot/fasttext
+
+      - name: Test
+        run: ./gradlew test
+
+  build-macos-x86:
+
+    runs-on: macos-13
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+
+      - name: Make
+        run: |
+          cd src/main/native
+          make -j4
+          ls -la
+          mv libfasttext.so libfasttext-mac-x86_64.so
+
+      - name: Upload shared library
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos_x86_lib
+          path: src/main/native/libfasttext-mac-x86_64.so
+
+
+  test-macos-x86:
+
+    runs-on: macos-13
+    needs: build-macos-x86
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          lfs: 'true'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Download shared library
+        uses: actions/download-artifact@v4
+        with:
+          name: macos_x86_lib
+          path: src/main/resources/com/diffbot/fasttext
+
+      - name: Test
+        run: ./gradlew test
+
+  build-macos-arm64:
+
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+
+      - name: Make
+        run: |
+          cd src/main/native
+          clang --version
+          clang -print-targets
+          make -j4 CXXFLAGS=' -std=c++11 -mcpu=apple-m1 -fPIC'
+          ls -la
+          mv libfasttext.so libfasttext-mac-aarch64.so
+
+      - name: Upload shared library
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos_arm64_lib
+          path: src/main/native/libfasttext-mac-aarch64.so
+
+  test-macos-arm64:
+
+    runs-on: macos-14
+    needs: build-macos-arm64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          lfs: 'true'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Download shared library
+        uses: actions/download-artifact@v4
+        with:
+          name: macos_arm64_lib
+          path: src/main/resources/com/diffbot/fasttext
+
+      - name: Test
+        run: ./gradlew test
