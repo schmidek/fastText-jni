@@ -1,3 +1,7 @@
+## Introduction
+
+fastText-jni is a Java wrapper for [fastText](https://github.com/facebookresearch/fastText) inference.
+
 ## Usage
 
 `implementation group: 'com.diffbot', name: 'fasttext-jni', version: '0.9.2.7'`
